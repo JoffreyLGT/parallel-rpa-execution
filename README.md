@@ -1,6 +1,6 @@
 # Goal
 
-This project is an experiment.The goal is to measure the efficiency of parallel run in RPA using Chrome to do automation on a remote website.
+This project is an experiment. The goal is to measure the efficiency of parallel run in RPA using Chrome to do automation on a remote website.
 
 # Prerequirements
 
