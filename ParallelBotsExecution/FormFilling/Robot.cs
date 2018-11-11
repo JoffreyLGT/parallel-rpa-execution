@@ -1,7 +1,6 @@
 ﻿using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using System;
-using OpenQA.Selenium.Support;
 using OpenQA.Selenium.Support.UI;
 
 namespace ParallelBotsExecution.FormFilling
@@ -14,9 +13,16 @@ namespace ParallelBotsExecution.FormFilling
         /// 
         /// </summary>
         /// <param name="implicitWait">in seconds</param>
-        internal Robot(int implicitWait = 3)
+        internal Robot(int implicitWait = 3, bool headless = false)
         {
-            this.driver = new ChromeDriver();
+            ChromeOptions options = new ChromeOptions();
+            if (headless)
+            {
+                options.AddArgument("--headless");
+                options.AddArgument("--window-size=1920,1080");
+            }
+            this.driver = new ChromeDriver(options);
+
             this.driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(implicitWait);
         }
 
@@ -73,6 +79,11 @@ namespace ParallelBotsExecution.FormFilling
             // When the form is submitted, all the fields are emptied.
             // So if firstName is empty, it was a success.
             return driver.FindElement(By.Id("firstName")).GetAttribute("value").Length == 0;
+        }
+
+        internal void Quit()
+        {
+            driver.Quit();
         }
     }
 }

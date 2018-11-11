@@ -1,10 +1,6 @@
 ﻿using Microsoft.Office.Interop.Excel;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ParallelBotsExecution.FormFilling
 {
@@ -15,6 +11,12 @@ namespace ParallelBotsExecution.FormFilling
         private Worksheet ws;
         private int lastReturnedLine;
 
+        /// <summary>
+        /// Default constructor.
+        /// If Excel is already opened, connects to the opened worksheet.
+        /// Otherwise, open the file at the path in parameter.
+        /// </summary>
+        /// <param name="file"></param>
         internal ExcelManager(string file)
         {
             // Use the existing instance if there is one
@@ -35,6 +37,10 @@ namespace ParallelBotsExecution.FormFilling
 
         }
 
+        /// <summary>
+        /// Read the next line in the Excel file.
+        /// </summary>
+        /// <returns></returns>
         internal ExcelLine ReadNextLine()
         {
             lastReturnedLine++;
@@ -44,6 +50,11 @@ namespace ParallelBotsExecution.FormFilling
             return line;
         }
 
+        /// <summary>
+        /// Read the content of the Excel line.
+        /// </summary>
+        /// <param name="number"></param>
+        /// <returns></returns>
         private ExcelLineContent ReadLine(int number)
         {
             ExcelLineContent line = new ExcelLineContent();
@@ -64,6 +75,10 @@ namespace ParallelBotsExecution.FormFilling
             return line;
         }
 
+        /// <summary>
+        /// Write the bot status in its column in Excel.
+        /// </summary>
+        /// <param name="line"></param>
         internal void WriteBotStatus(ExcelLine line)
         {
             ws.Cells[line.LineNumber, (int)ExcelLineContent.Columns.botStatus] = line.Content.BotStatus;
