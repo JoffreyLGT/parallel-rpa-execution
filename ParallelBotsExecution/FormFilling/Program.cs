@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace ParallelBotsExecution.FormFilling
 {
@@ -19,8 +20,9 @@ namespace ParallelBotsExecution.FormFilling
 
         static void Main(string[] args)
         {
-            DateTime start = DateTime.Now;
-            Console.WriteLine(start.ToString() + " Script started");
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            Console.WriteLine("Script started");
 
             List<ExcelLine> linesToWrite = new List<ExcelLine>();
             Dictionary<string, bool> processesStatus = new Dictionary<string, bool>();
@@ -37,12 +39,12 @@ namespace ParallelBotsExecution.FormFilling
             excelTask.Start();
             // We have to indicate to the program that we want the ExcelTask to finish before continuing.
             // Otherwise, the bot could finish it's execution without completing any task.
-            excelTask.Wait(); 
+            excelTask.Wait();
 
-            DateTime end = DateTime.Now;
-            Console.WriteLine(end.ToString() + " Script finished");
-
-            Console.WriteLine("Total time:" + end.Subtract(start).ToString());
+            Console.WriteLine("Script finished");
+            stopwatch.Stop();
+            Console.WriteLine($"Execution time: {stopwatch.Elapsed.ToString(@"hh\:mm\:ss")}");
+            
             Console.ReadKey();
         }
 
