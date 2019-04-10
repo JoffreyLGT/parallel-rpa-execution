@@ -17,7 +17,6 @@ namespace ParallelBotsExecution.FormFilling
         const bool chromeHeadless = false; // Set true to activate the headless mode
         static readonly string dataFile = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + @"\FormFilling\Test-cases.xlsx";
         // Configs
-        static readonly object myLock = new object();
 
         static async Task Main()
         {
@@ -57,12 +56,9 @@ namespace ParallelBotsExecution.FormFilling
 
                 // Set the status regarding the result
                 line.Content.BotStatus = result ? "ok" : "ko";
-                lock (myLock)
-                {
-                    manager.WriteBotStatus(line);
-                }
-            }
+                manager.WriteBotStatus(line);
 
+            }
             // Destroy the bot and set the process status to finished
             robot.Quit();
         }

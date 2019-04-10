@@ -6,12 +6,13 @@ using System.Runtime.InteropServices;
 
 namespace ParallelBotsExecution.FormFilling
 {
-    class ExcelManager:IEnumerable<ExcelLine>
+    class ExcelManager : IEnumerable<ExcelLine>
     {
         private readonly Application app;
         private readonly Workbook wb;
         private readonly Worksheet ws;
-        public int LastReturnedLine { get; set; }
+        private int lastReturnedLine;
+        public static readonly object managerLock = new object();
 
         /// <summary>
         /// Default constructor.
@@ -37,7 +38,7 @@ namespace ParallelBotsExecution.FormFilling
             }
 
             ws = wb.ActiveSheet;
-            LastReturnedLine = 1; // We have a header in the file so we start at 1, not 0.
+            lastReturnedLine = 1; // We have a header in the file so we start at 1, not 0.
 
         }
 
@@ -45,14 +46,18 @@ namespace ParallelBotsExecution.FormFilling
         /// Read the next line in the Excel file.
         /// </summary>
         /// <returns></returns>
-        internal ExcelLine ReadNextLine()
+        private ExcelLine ReadNextLine()
         {
-            LastReturnedLine++;
-            ExcelLine line = new ExcelLine
+            ExcelLine line = null;
+            lock (managerLock)
             {
-                LineNumber = LastReturnedLine,
-                Content = ReadLine(LastReturnedLine)
-            };
+                lastReturnedLine++;
+                line = new ExcelLine
+                {
+                    LineNumber = lastReturnedLine,
+                    Content = ReadLine(lastReturnedLine)
+                };
+            }
             return line;
         }
 
@@ -90,7 +95,10 @@ namespace ParallelBotsExecution.FormFilling
         /// <param name="line"></param>
         internal void WriteBotStatus(ExcelLine line)
         {
-            ws.Cells[line.LineNumber, (int)ExcelLineContent.Columns.botStatus] = line.Content.BotStatus;
+            lock (managerLock)
+            {
+                ws.Cells[line.LineNumber, (int)ExcelLineContent.Columns.botStatus] = line.Content.BotStatus;
+            }
         }
 
         private string GetCellValue(int row, int col)
@@ -110,7 +118,7 @@ namespace ParallelBotsExecution.FormFilling
         public IEnumerator<ExcelLine> GetEnumerator()
         {
             ExcelLine line;
-            while((line = ReadNextLine()).Content != null)
+            while ((line = ReadNextLine()).Content != null)
             {
                 yield return line;
             }
