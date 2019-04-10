@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Collections.Concurrent;
 
 namespace ParallelBotsExecution.FormFilling
 {
@@ -14,37 +15,28 @@ namespace ParallelBotsExecution.FormFilling
         // Configs
         const int nbChrome = 2; // Number of Chrome instances running in parallel
         const bool chromeHeadless = false; // Set true to activate the headless mode
+        static readonly string dataFile = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + @"\FormFilling\Test-cases.xlsx";
         // Configs
+        static readonly object myLock = new object();
 
-        static Random rnd = new Random(); // Used to generate random ids
-
-        static void Main(string[] args)
+        static async Task Main()
         {
             var stopwatch = new Stopwatch();
             stopwatch.Start();
+
             Console.WriteLine("Script started");
-
-            List<ExcelLine> linesToWrite = new List<ExcelLine>();
-            Dictionary<string, bool> processesStatus = new Dictionary<string, bool>();
-
-            string dataFile = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + @"\FormFilling\Test-cases.xlsx";
             ExcelManager manager = new ExcelManager(dataFile);
 
+            List<Task> tasks = new List<Task>();
             for (int i = 0; i < nbChrome; i++)
             {
-                Task.Factory.StartNew(() => RunRobot(ref manager, ref linesToWrite, ref processesStatus, chromeHeadless));
+                tasks.Add(Task.Run(() => RunRobot(manager, chromeHeadless)));
             }
-
-            var excelTask = new Task(() => FillExcel(ref manager, ref linesToWrite, ref processesStatus));
-            excelTask.Start();
-            // We have to indicate to the program that we want the ExcelTask to finish before continuing.
-            // Otherwise, the bot could finish it's execution without completing any task.
-            excelTask.Wait();
-
+            await Task.WhenAll(tasks);
             Console.WriteLine("Script finished");
+
             stopwatch.Stop();
             Console.WriteLine($"Execution time: {stopwatch.Elapsed.ToString(@"hh\:mm\:ss")}");
-            
             Console.ReadKey();
         }
 
@@ -52,64 +44,27 @@ namespace ParallelBotsExecution.FormFilling
         /// Run one bot that will do the process.
         /// </summary>
         /// <param name="manager"></param>
-        /// <param name="linesToWrite"></param>
-        /// <param name="processesStatus"></param>
         /// <param name="headless"></param>
-        static void RunRobot(ref ExcelManager manager, ref List<ExcelLine> linesToWrite, ref Dictionary<string, bool> processesStatus, bool headless = false)
+        static void RunRobot(ExcelManager manager, bool headless = false)
         {
-            // Generate a new ID and add it in the processes status so we know when it's finished
-            string id = rnd.Next().ToString();
-            processesStatus.Add(id, false);
-
             // Create a new bot
             Robot robot = new Robot(headless: headless);
 
-            // Loop until we find an empty line
-            ExcelLine line = null;
-            do
+            foreach (ExcelLine line in manager)
             {
-                // Read the next line from the manager
-                line = manager.ReadNextLine();
-                if (line.Content == null) continue;
-
                 // Fill the form
                 bool result = robot.FillForm(line.Content.FirstName, line.Content.LastName, line.Content.UserName, line.Content.Address, line.Content.Country, line.Content.State, line.Content.Zip, line.Content.NameOnCard, line.Content.CreditCardNumber, line.Content.Expirationdate, line.Content.Cvv);
-                
+
                 // Set the status regarding the result
                 line.Content.BotStatus = result ? "ok" : "ko";
-                // Add the line in the list of lines to write
-                linesToWrite.Add(line);
-            } while (line.Content != null);
+                lock (myLock)
+                {
+                    manager.WriteBotStatus(line);
+                }
+            }
 
             // Destroy the bot and set the process status to finished
             robot.Quit();
-            processesStatus[id] = true;
-        }
-
-        /// <summary>
-        /// Process that extract the lines from the lineToWrite list and write them in Excel.
-        /// It is the only process writing in the Excel file to avoid the concurrency.
-        /// It stops when no more bots are running and when there is no more line to write.
-        /// </summary>
-        /// <param name="manager"></param>
-        /// <param name="linesToWrite"></param>
-        /// <param name="processesStatus"></param>
-        private static void FillExcel(ref ExcelManager manager, ref List<ExcelLine> linesToWrite, ref Dictionary<string, bool> processesStatus)
-        {
-            do
-            {
-                if (linesToWrite.Count > 0)
-                {
-                    manager.WriteBotStatus(linesToWrite.ElementAt(0));
-                    linesToWrite.RemoveAt(0);
-                }
-                else
-                {
-                    Thread.Sleep(1000);
-                }
-            } while (processesStatus.Count == 0 ||
-                     processesStatus.Values.Contains(false) ||
-                     linesToWrite.Count > 0);
         }
     }
 }

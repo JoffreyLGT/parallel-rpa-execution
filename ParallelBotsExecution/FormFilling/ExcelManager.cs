@@ -1,15 +1,17 @@
 ﻿using Microsoft.Office.Interop.Excel;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace ParallelBotsExecution.FormFilling
 {
-    class ExcelManager
+    class ExcelManager:IEnumerable<ExcelLine>
     {
-        private Application app;
-        private Workbook wb;
-        private Worksheet ws;
-        private int lastReturnedLine;
+        private readonly Application app;
+        private readonly Workbook wb;
+        private readonly Worksheet ws;
+        public int LastReturnedLine { get; set; }
 
         /// <summary>
         /// Default constructor.
@@ -27,13 +29,15 @@ namespace ParallelBotsExecution.FormFilling
             }
             catch (COMException)
             {
-                app = new Application();
-                app.Visible = true;
+                app = new Application
+                {
+                    Visible = true
+                };
                 wb = app.Workbooks.Open(file);
             }
 
             ws = wb.ActiveSheet;
-            lastReturnedLine = 1; // We have a header in the file so we start at 1, not 0.
+            LastReturnedLine = 1; // We have a header in the file so we start at 1, not 0.
 
         }
 
@@ -43,10 +47,12 @@ namespace ParallelBotsExecution.FormFilling
         /// <returns></returns>
         internal ExcelLine ReadNextLine()
         {
-            lastReturnedLine++;
-            ExcelLine line = new ExcelLine();
-            line.LineNumber = lastReturnedLine;
-            line.Content = ReadLine(lastReturnedLine);
+            LastReturnedLine++;
+            ExcelLine line = new ExcelLine
+            {
+                LineNumber = LastReturnedLine,
+                Content = ReadLine(LastReturnedLine)
+            };
             return line;
         }
 
@@ -57,21 +63,24 @@ namespace ParallelBotsExecution.FormFilling
         /// <returns></returns>
         private ExcelLineContent ReadLine(int number)
         {
-            ExcelLineContent line = new ExcelLineContent();
-            line.Number = GetCellValue(number, (int)ExcelLineContent.Columns.number);
+            ExcelLineContent line = new ExcelLineContent
+            {
+                Number = GetCellValue(number, (int)ExcelLineContent.Columns.number),
+                FirstName = GetCellValue(number, (int)ExcelLineContent.Columns.firstName),
+                LastName = GetCellValue(number, (int)ExcelLineContent.Columns.lastName),
+                UserName = GetCellValue(number, (int)ExcelLineContent.Columns.userName),
+                Address = GetCellValue(number, (int)ExcelLineContent.Columns.address),
+                Country = GetCellValue(number, (int)ExcelLineContent.Columns.country),
+                State = GetCellValue(number, (int)ExcelLineContent.Columns.state),
+                Zip = GetCellValue(number, (int)ExcelLineContent.Columns.zip),
+                NameOnCard = GetCellValue(number, (int)ExcelLineContent.Columns.nameOnCard),
+                CreditCardNumber = GetCellValue(number, (int)ExcelLineContent.Columns.creditCardNumber),
+                Expirationdate = GetCellValue(number, (int)ExcelLineContent.Columns.expirationdate),
+                Cvv = GetCellValue(number, (int)ExcelLineContent.Columns.cvv),
+                BotStatus = GetCellValue(number, (int)ExcelLineContent.Columns.botStatus)
+            };
             if (string.IsNullOrEmpty(line.Number)) return null;
-            line.FirstName = GetCellValue(number, (int)ExcelLineContent.Columns.firstName);
-            line.LastName = GetCellValue(number, (int)ExcelLineContent.Columns.lastName);
-            line.UserName = GetCellValue(number, (int)ExcelLineContent.Columns.userName);
-            line.Address = GetCellValue(number, (int)ExcelLineContent.Columns.address);
-            line.Country = GetCellValue(number, (int)ExcelLineContent.Columns.country);
-            line.State = GetCellValue(number, (int)ExcelLineContent.Columns.state);
-            line.Zip = GetCellValue(number, (int)ExcelLineContent.Columns.zip);
-            line.NameOnCard = GetCellValue(number, (int)ExcelLineContent.Columns.nameOnCard);
-            line.CreditCardNumber = GetCellValue(number, (int)ExcelLineContent.Columns.creditCardNumber);
-            line.Expirationdate = GetCellValue(number, (int)ExcelLineContent.Columns.expirationdate);
-            line.Cvv = GetCellValue(number, (int)ExcelLineContent.Columns.cvv);
-            line.BotStatus = GetCellValue(number, (int)ExcelLineContent.Columns.botStatus);
+
             return line;
         }
 
@@ -96,6 +105,20 @@ namespace ParallelBotsExecution.FormFilling
                 // Do nothing. For example, an exception is thrown when the cell is empty.
             }
             return content;
+        }
+
+        public IEnumerator<ExcelLine> GetEnumerator()
+        {
+            ExcelLine line;
+            while((line = ReadNextLine()).Content != null)
+            {
+                yield return line;
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
     }
 }
