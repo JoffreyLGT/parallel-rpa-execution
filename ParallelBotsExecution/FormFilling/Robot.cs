@@ -5,9 +5,9 @@ using OpenQA.Selenium.Support.UI;
 
 namespace ParallelBotsExecution.FormFilling
 {
-    class Robot
+    class Robot:IDisposable
     {
-        private IWebDriver driver;
+        private readonly IWebDriver driver;
 
         /// <summary>
         /// 
@@ -24,6 +24,11 @@ namespace ParallelBotsExecution.FormFilling
             this.driver = new ChromeDriver(options);
 
             this.driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(implicitWait);
+        }
+
+        public void Dispose()
+        {
+            driver.Dispose();
         }
 
         /// <summary>
@@ -84,6 +89,7 @@ namespace ParallelBotsExecution.FormFilling
         internal void Quit()
         {
             driver.Quit();
+            Dispose();
         }
     }
 }
