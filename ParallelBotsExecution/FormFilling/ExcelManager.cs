@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 
 namespace ParallelBotsExecution.FormFilling
 {
-    class ExcelManager : IEnumerable<ExcelLine>
+    class ExcelManager
     {
         private readonly Application app;
         private readonly Workbook wb;
@@ -46,7 +46,7 @@ namespace ParallelBotsExecution.FormFilling
         /// Read the next line in the Excel file.
         /// </summary>
         /// <returns></returns>
-        private ExcelLine ReadNextLine()
+        internal ExcelLine ReadNextLine()
         {
             ExcelLine line = null;
             lock (managerLock)
@@ -113,20 +113,6 @@ namespace ParallelBotsExecution.FormFilling
                 // Do nothing. For example, an exception is thrown when the cell is empty.
             }
             return content;
-        }
-
-        public IEnumerator<ExcelLine> GetEnumerator()
-        {
-            ExcelLine line;
-            while ((line = ReadNextLine()).Content != null)
-            {
-                yield return line;
-            }
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
         }
     }
 }

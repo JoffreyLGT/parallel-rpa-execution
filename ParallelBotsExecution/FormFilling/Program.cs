@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
-using System.Collections.Concurrent;
 
 namespace ParallelBotsExecution.FormFilling
 {
@@ -48,8 +45,8 @@ namespace ParallelBotsExecution.FormFilling
         {
             // Create a new bot
             Robot robot = new Robot(headless: headless);
-
-            foreach (ExcelLine line in manager)
+            ExcelLine line;
+            while ((line = manager.ReadNextLine()) != null)
             {
                 // Fill the form
                 bool result = robot.FillForm(line.Content.FirstName, line.Content.LastName, line.Content.UserName, line.Content.Address, line.Content.Country, line.Content.State, line.Content.Zip, line.Content.NameOnCard, line.Content.CreditCardNumber, line.Content.Expirationdate, line.Content.Cvv);
