@@ -8,11 +8,16 @@ namespace ParallelBotsExecution.FormFilling
 {
     class ExcelManager
     {
+        public int FirstLineToProcess { get; }
+        public int LastLineToProcess { get; }
+        
         private readonly Application app;
         private readonly Workbook wb;
         private readonly Worksheet ws;
+
+        private static readonly object managerLock = new object();
         private int lastReturnedLine;
-        public static readonly object managerLock = new object();
+        private bool emptyLineReached = false;
 
         /// <summary>
         /// Default constructor.
@@ -38,8 +43,20 @@ namespace ParallelBotsExecution.FormFilling
             }
 
             ws = wb.ActiveSheet;
+
+            FirstLineToProcess = app.Selection.Row;
+            LastLineToProcess = GetLastLine();
             lastReturnedLine = 1; // We have a header in the file so we start at 1, not 0.
 
+        }
+
+        /// <summary>
+        /// Get the row number of the next empty cell in column A.
+        /// </summary>
+        /// <returns></returns>
+        internal int GetLastLine()
+        {
+            return ws.Range[ws.Cells[FirstLineToProcess, 1], ws.Cells[ws.Rows.Count, 1]].End[XlDirection.xlDown].Row;
         }
 
         /// <summary>
@@ -48,6 +65,10 @@ namespace ParallelBotsExecution.FormFilling
         /// <returns></returns>
         internal ExcelLine ReadNextLine()
         {
+            if (emptyLineReached)
+            {
+                return null;
+            }
             ExcelLine line = null;
             lock (managerLock)
             {
@@ -57,8 +78,15 @@ namespace ParallelBotsExecution.FormFilling
                     LineNumber = lastReturnedLine,
                     Content = ReadLine(lastReturnedLine)
                 };
+                if (line.Content == null)
+                {
+                    emptyLineReached = true;
+                }
             }
-            return line;
+
+            return emptyLineReached
+                    ? null : line.Content != null
+                        ? line : null;
         }
 
         /// <summary>
